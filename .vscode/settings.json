@@ -1,0 +1,17 @@
+{
+  // Enable type-aware features for the OXC extension
+  "oxc.typeAware": true,
+  // Set the default formatter to the OXC extension
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  // Disable format on save (enabled in "codeActionsOnSave" below)
+  "editor.formatOnSave": false,
+  // What to do on save...
+  "editor.codeActionsOnSave": {
+    // ... first organize imports
+    "source.organizeImports": "always",
+    // ... then format the document with "oxfmt"
+    "source.format.oxc": "always",
+    // ... finally fix all fixable issues with "oxlint"
+    "source.fixAll.oxc": "always"
+  }
+}

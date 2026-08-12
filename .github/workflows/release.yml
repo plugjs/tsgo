@@ -1,0 +1,18 @@
+name: Release Package
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  release:
+    name: Release Package
+    uses: juitnow/workflows-public/.github/workflows/release.yml@main
+    secrets:
+      EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      EMAIL_SERVER: ${{ secrets.EMAIL_SERVER }}
+      EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}

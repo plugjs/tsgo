@@ -1,0 +1,62 @@
+{
+  "name": "@plugjs/tsgo",
+  "version": "0.0.0",
+  "description": "TypeScript 7.1 support for PlugJS",
+  "keywords": [
+    "build",
+    "compile",
+    "ecmascript",
+    "javascript",
+    "node",
+    "plugjs",
+    "typescript"
+  ],
+  "homepage": "https://github.com/plugjs/tsgo#readme",
+  "bugs": {
+    "url": "https://github.com/plugjs/tsgo/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Juit Developers <developers@juit.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plugjs/tsgo.git"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "files": [
+    "*.md",
+    "dist/",
+    "src/"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "plug",
+    "coverage": "plug coverage",
+    "dev": "plug coverage -w src -w test",
+    "lint": "plug lint",
+    "lintfix": "plug lint fix=true",
+    "test": "plug test",
+    "transpile": "plug transpile"
+  },
+  "dependencies": {
+    "typescript": "^7.1.0-dev"
+  },
+  "devDependencies": {
+    "@plugjs/cov8": "^0.7.1",
+    "@plugjs/expect5": "^0.7.1",
+    "@plugjs/oxc": "^0.1.1",
+    "@plugjs/plug": "^0.7.1"
+  },
+  "peerDependencies": {
+    "@plugjs/plug": "^0.7.1"
+  }
+}

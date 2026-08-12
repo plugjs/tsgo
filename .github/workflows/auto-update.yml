@@ -1,0 +1,20 @@
+name: Automatic Updates
+
+on:
+  schedule:
+    - cron: '30 3 * * 4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto-update:
+    name: Automatic Updates
+    uses: juitnow/workflows-public/.github/workflows/auto-update.yml@main
+    secrets:
+      AUTO_UPDATES_APP_ID: ${{ secrets.AUTO_UPDATES_APP_ID }}
+      AUTO_UPDATES_APP_PRIVATE_KEY: ${{ secrets.AUTO_UPDATES_APP_PRIVATE_KEY }}
+      EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      EMAIL_SERVER: ${{ secrets.EMAIL_SERVER }}
+      EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
