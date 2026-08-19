@@ -51,12 +51,12 @@
     "typescript": "^7.1.0-dev"
   },
   "devDependencies": {
-    "@plugjs/cov8": "^0.7.1",
-    "@plugjs/expect5": "^0.7.1",
-    "@plugjs/oxc": "^0.1.1",
-    "@plugjs/plug": "^0.7.1"
+    "@plugjs/cov8": "^0.7.2",
+    "@plugjs/expect5": "^0.7.2",
+    "@plugjs/oxc": "^0.1.2",
+    "@plugjs/plug": "^0.7.2"
   },
   "peerDependencies": {
-    "@plugjs/plug": "^0.7.1"
+    "@plugjs/plug": "^0.7.2"
   }
 }
