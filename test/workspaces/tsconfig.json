@@ -1,0 +1,11 @@
+{
+  "references": [
+    { "path": "./cov8/tsconfig.json" },
+    { "path": "./eslint/tsconfig.json" },
+    { "path": "./expect5/tsconfig.json" },
+    { "path": "./plug/tsconfig.json" },
+    { "path": "./tsd/tsconfig.json" },
+    { "path": "./zip/tsconfig.json" }
+  ],
+  "include": []
+}

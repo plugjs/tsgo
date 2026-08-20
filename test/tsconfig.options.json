@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    // Setup our compilation type
+    "lib": ["esnext"],
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    // ES modules interoperability and preserve import/export statements
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": true,
+
+    // Import relative files as "file.ts"
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+
+    // Emit transpiled files and declarations (with source maps)
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": false,
+    "sourceMap": true,
+    "inlineSources": false,
+    "inlineSourceMap": false,
+
+    // Ultra strict
+    "strict": true,
+    // Implies:
+    // - alwaysStrict
+    // - noImplicitAny
+    // - noImplicitThis
+    // - strictBindCallApply
+    // - strictBuiltinIteratorReturn
+    // - strictFunctionTypes
+    // - strictNullChecks
+    // - strictPropertyInitialization
+    // - useUnknownInCatchVariables
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}
