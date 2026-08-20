@@ -1,9 +1,12 @@
 import { assert } from '@plugjs/plug/asserts'
+import { $gry, $p, $ylw, ERROR } from '@plugjs/plug/logging'
 import { assertAbsolutePath, getAbsoluteParent, resolveFile } from '@plugjs/plug/paths'
-import { DiagnosticCategory } from 'typescript/unstable/async'
 
+import { convertDiagnostics } from './diagnostics.ts'
+
+import type { ReportRecord } from '@plugjs/plug/logging'
 import type { AbsolutePath } from '@plugjs/plug/paths'
-import type { API, Diagnostic } from 'typescript/unstable/async'
+import type { API } from 'typescript/unstable/async'
 
 /** Interface describing the actual (resolved) config file and its references */
 interface ProjectReferences {
@@ -12,7 +15,7 @@ interface ProjectReferences {
   /** The actual paths of all configuration files referenced by this project */
   references: AbsolutePath[]
   /** Any errors encountered while reading the configuration file */
-  errors: Diagnostic[]
+  errors: ReportRecord[]
 }
 
 /** Interface describing a group of cross referencing projects */
@@ -20,7 +23,7 @@ interface Projects {
   /** All projects to build, each associated with its referencing projects */
   projects: Map<AbsolutePath, Set<AbsolutePath>>
   /** Any errors encountered while reading the configuration file */
-  errors: Diagnostic[]
+  errors: ReportRecord[]
 }
 
 /** Interface describing the order of projects, including any cycles and unresolved projects */
@@ -31,6 +34,8 @@ interface ProjectOrder {
   cycles: AbsolutePath[][]
   /** Array containing all projects that could not be ordered because of cyclical dependencies */
   unresolved: AbsolutePath[]
+  /** Any errors encountered while reading the configuration file */
+  errors: ReportRecord[]
 }
 
 /* ========================================================================== */
@@ -55,31 +60,33 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
   if (!file) file = resolveFile(path, 'tsconfig.json')
   assert(file, `TypeScript configuration file not found in "${path}"`)
 
-  // Use the TypeScript API to parse the configuration file and get its references
-  const parsed = await api.parseConfigFile(file)
-  assert(parsed.options.configFilePath, `Failed to parse TypeScript configuration file "${file}"`)
-  assertAbsolutePath(parsed.options.configFilePath)
+  // Use the TypeScript API to load up this project... We already update the
+  // snapshot here, so we don't need to do it again once we end up compiling
+  // the whole project...
+  const snapshot = await api.updateSnapshot({ openProjects: [file] })
+  const project = snapshot.getProject(file)
+  assert(project, `Failed to open TypeScript project from "${file}"`)
+  assertAbsolutePath(project.configFileName)
+  path = project.configFileName // rewrite the path to the actual
+
+  // Get any diagnostics encountered while parsing the configuration file
+  const diagnostics = await project.program.getConfigFileParsingDiagnostics()
+  const errors = await convertDiagnostics(diagnostics, project.program)
 
   // Prepare our simplified result object
-  const result: ProjectReferences = {
-    path: parsed.options.configFilePath,
-    errors: [...parsed.errors],
-    references: [],
-  }
+  const result: ProjectReferences = { path, errors, references: [] }
 
   // Resolve the references to absolute paths
   const directory = getAbsoluteParent(path)
-  for (const reference of parsed.projectReferences ?? []) {
+  for (const reference of project.parsedCommandLine.projectReferences ?? []) {
     let resolved = resolveFile(directory, reference.path)
     if (!resolved) resolved = resolveFile(directory, reference.path, 'tsconfig.json')
     if (!resolved) {
       result.errors.push({
-        fileName: result.path,
-        category: DiagnosticCategory.Error, // DiagnosticCategory.Error
-        code: 6053, // File not found
-        pos: -1, // Dummy position
-        end: -1, // Dummy position
-        text: `Cannot resolve project reference "${reference.originalPath}"`,
+        level: ERROR,
+        message: `Cannot resolve project reference "${reference.originalPath}"`,
+        tags: ['TS6053'], // File not found
+        file: path,
       })
     } else result.references.push(resolved)
   }
@@ -105,7 +112,7 @@ export async function findProjectReferences(api: API, ...paths: AbsolutePath[]):
   const projects = new Map<AbsolutePath, Set<AbsolutePath>>()
 
   // An array of all errors encountered while reading the configuration files
-  const errors: Diagnostic[] = []
+  const errors: ReportRecord[] = []
 
   // Add a referring project to the set of referring projects for a referred project
   function addProject(referredProject: AbsolutePath, referringProject?: AbsolutePath): void {
@@ -191,7 +198,7 @@ export function resolveProjectOrder(projects: ReadonlyMap<AbsolutePath, Set<Abso
   const unresolved = uniques.filter((project) => counts[project])
 
   // If we have no unresolved projects, we can return the order (no cycles)
-  if (unresolved.length === 0) return { order, unresolved, cycles: [] }
+  if (unresolved.length === 0) return { order, unresolved, cycles: [], errors: [] }
 
   // ===== FIND CYCLES =========================================================
 
@@ -223,6 +230,22 @@ export function resolveProjectOrder(projects: ReadonlyMap<AbsolutePath, Set<Abso
     if (!visited.has(project)) visit(project)
   }
 
+  // Prep our errors
+  const errors: ReportRecord[] = []
+  errors.push({
+    level: ERROR,
+    message:
+      `Found ${$ylw(unresolved.length)} unresolved projects (${$ylw(cycles.length)} cycles)` +
+      `\n${$gry('-')} ${unresolved.map($p).join(`\n${$gry('-')} `)}`,
+  })
+
+  for (const cycle of cycles) {
+    errors.push({
+      level: ERROR,
+      message: `Project reference cycle:\n${$gry('-')} ${cycle.map($p).join(`\n${$gry('-')} `)}`,
+    })
+  }
+
   // Return the final order, unresolved projects, and cycles found
-  return { order, unresolved, cycles }
+  return { order, unresolved, cycles, errors }
 }
