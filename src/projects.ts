@@ -1,18 +1,26 @@
-import { readFile } from '@plugjs/plug/fs'
-import { getAbsoluteParent, resolveAbsolutePath, resolveFile } from '@plugjs/plug/paths'
-import { parseJsonc } from '@plugjs/plug/utils'
+import { assert } from '@plugjs/plug/asserts'
+import { assertAbsolutePath, getAbsoluteParent, resolveFile } from '@plugjs/plug/paths'
+import { DiagnosticCategory } from 'typescript/unstable/async'
 
 import type { AbsolutePath } from '@plugjs/plug/paths'
-
-/** A simple interface representing TypeScript project references */
-interface TSConfigReferences {
-  references?: { path: string }[]
-}
+import type { API, Diagnostic } from 'typescript/unstable/async'
 
 /** Interface describing the actual (resolved) config file and its references */
 interface ProjectReferences {
+  /** The actual path of the configuration file containing the references */
   path: AbsolutePath
-  references: Set<AbsolutePath>
+  /** The actual paths of all configuration files referenced by this project */
+  references: AbsolutePath[]
+  /** Any errors encountered while reading the configuration file */
+  errors: Diagnostic[]
+}
+
+/** Interface describing a group of cross referencing projects */
+interface Projects {
+  /** All projects to build, each associated with its referencing projects */
+  projects: Map<AbsolutePath, Set<AbsolutePath>>
+  /** Any errors encountered while reading the configuration file */
+  errors: Diagnostic[]
 }
 
 /** Interface describing the order of projects, including any cycles and unresolved projects */
@@ -33,35 +41,50 @@ interface ProjectOrder {
  * The path specified can be a `tsconfig.json` file name or a directory
  * containing a `tsconfig.json` file.
  *
- * The returned object contains the resolved configuration file name and the
- * set of resolved project references (the actual resolved files on disk).
+ * The returned object contains the resolved configuration file name (in `path`)
+ * and the array of resolved project references (the actual resolved files on
+ * disk in `references`).
+ *
+ * Any errors encountered while reading the configuration file or resolving its
+ * references are returned in the `errors` array.
  */
-export async function readProjectConfig(path: AbsolutePath): Promise<ProjectReferences> {
-  let json: TSConfigReferences
-  try {
-    // Read up our tsconfig file
-    const data = await readFile(path, 'utf-8')
-    json = parseJsonc(data || ' ')
-  } catch (cause: any) {
-    if (cause.code == 'EISDIR') {
-      return readProjectConfig(resolveAbsolutePath(path, 'tsconfig.json'))
-    } else if (cause.code == 'ENOENT') {
-      throw new Error(`TypeScript configuration file "${path}" not found`, { cause })
-    } else {
-      throw new Error(`Failed to read project references from "${path}"`, { cause })
-    }
+export async function readProjectConfig(api: API, path: AbsolutePath): Promise<ProjectReferences> {
+  // The specified path can be either a file or a directory containing a
+  // "tsconfig.json" file: resolve as a file, then assume it's a directory
+  let file = resolveFile(path)
+  if (!file) file = resolveFile(path, 'tsconfig.json')
+  assert(file, `TypeScript configuration file not found in "${path}"`)
+
+  // Use the TypeScript API to parse the configuration file and get its references
+  const parsed = await api.parseConfigFile(file)
+  assert(parsed.options.configFilePath, `Failed to parse TypeScript configuration file "${file}"`)
+  assertAbsolutePath(parsed.options.configFilePath)
+
+  // Prepare our simplified result object
+  const result: ProjectReferences = {
+    path: parsed.options.configFilePath,
+    errors: [...parsed.errors],
+    references: [],
   }
 
   // Resolve the references to absolute paths
   const directory = getAbsoluteParent(path)
-  const result = { path, references: new Set<AbsolutePath>() }
-  for (const reference of json.references ?? []) {
+  for (const reference of parsed.projectReferences ?? []) {
     let resolved = resolveFile(directory, reference.path)
     if (!resolved) resolved = resolveFile(directory, reference.path, 'tsconfig.json')
-    if (!resolved) throw new Error(`Failed to resolve project reference "${reference.path}" from "${path}"`)
-    result.references.add(resolved)
+    if (!resolved) {
+      result.errors.push({
+        fileName: result.path,
+        category: DiagnosticCategory.Error, // DiagnosticCategory.Error
+        code: 6053, // File not found
+        pos: -1, // Dummy position
+        end: -1, // Dummy position
+        text: `Cannot resolve project reference "${reference.originalPath}"`,
+      })
+    } else result.references.push(resolved)
   }
 
+  // All done
   return result
 }
 
@@ -71,7 +94,7 @@ export async function readProjectConfig(path: AbsolutePath): Promise<ProjectRefe
  * The returned map contains all the projects (resolved configuration file
  * names) and their referring projects as values.
  */
-export async function findProjectReferences(...paths: AbsolutePath[]): Promise<Map<AbsolutePath, Set<AbsolutePath>>> {
+export async function findProjectReferences(api: API, ...paths: AbsolutePath[]): Promise<Projects> {
   // The set of *all* projects, whether we have resolved them yet or not.
   const remainingProjects = new Set<AbsolutePath>(paths)
   // The set of all *resolved* projects (that is, opened and parsed)
@@ -80,6 +103,9 @@ export async function findProjectReferences(...paths: AbsolutePath[]): Promise<M
   // The map of all our projects, keyed by their resolved configuration file
   // name and having the set of projects that refer to it as a value
   const projects = new Map<AbsolutePath, Set<AbsolutePath>>()
+
+  // An array of all errors encountered while reading the configuration files
+  const errors: Diagnostic[] = []
 
   // Add a referring project to the set of referring projects for a referred project
   function addProject(referredProject: AbsolutePath, referringProject?: AbsolutePath): void {
@@ -95,7 +121,9 @@ export async function findProjectReferences(...paths: AbsolutePath[]): Promise<M
   while (remainingProjects.size > 0) {
     for (const project of remainingProjects) {
       // Read the project configuration file and its references
-      const { path, references } = await readProjectConfig(project)
+      const { path, references, errors: e } = await readProjectConfig(api, project)
+      // Push any errors encountered while reading the configuration file
+      errors.push(...e)
       // Remove the project (might be a dir) from the remaining set
       remainingProjects.delete(project)
       // Add the project (resolved filename) to the resolved set
@@ -113,8 +141,8 @@ export async function findProjectReferences(...paths: AbsolutePath[]): Promise<M
     }
   }
 
-  // Return our projects map
-  return projects
+  // Return our projects map and all errors
+  return { projects, errors }
 }
 
 /**
