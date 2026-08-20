@@ -1,17 +1,23 @@
-import { async } from '@plugjs/plug'
+import { async, BuildFailure } from '@plugjs/plug'
+import { API } from 'typescript/unstable/async'
 
 import { findProjectReferences, readProjectConfig, resolveProjectOrder } from '../src/projects.ts'
 
 describe('Projects', () => {
   const context = async.requireContext()
+  let api: API
+
+  beforeAll(() => (api = new API()))
+  afterAll(() => api.close())
 
   describe('Read Project Config', () => {
     it('should read the project references from a file', async () => {
       const file = context.resolve('test', 'recursive', 'tsconfig.json')
-      const references = await readProjectConfig(file)
+      const parsed = await readProjectConfig(api, file)
 
-      expect(references).toEqual({
+      expect(parsed).toEqual({
         path: file,
+        errors: [],
         references: expect.toMatchContents([
           context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
           context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
@@ -24,10 +30,11 @@ describe('Projects', () => {
     it('should read the project config from a directory', async () => {
       const dir = context.resolve('test', 'recursive')
       const file = context.resolve('test', 'recursive', 'tsconfig.json')
-      const references = await readProjectConfig(dir)
+      const parsed = await readProjectConfig(api, dir)
 
-      expect(references).toEqual({
+      expect(parsed).toEqual({
         path: file,
+        errors: [],
         references: expect.toMatchContents([
           context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
           context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
@@ -38,41 +45,74 @@ describe('Projects', () => {
     })
 
     it('should return no references for an empty project', async () => {
-      const file = context.resolve('test', 'empty', 'empty.json')
+      const file = context.resolve('test', 'configs', 'tsconfig-empty.json')
+      const parsed = await readProjectConfig(api, file)
 
-      const references = await readProjectConfig(file)
-      expect(references).toEqual({
+      expect(parsed).toEqual({
         path: file,
+        errors: [],
         references: expect.toMatchContents([]),
       })
     })
 
+    it('should report errors when a "tsconfig.json" file is not a valid JSON', async () => {
+      const file = context.resolve('test', 'configs', 'source.ts')
+      const parsed = await readProjectConfig(api, file)
+
+      // NOTE: this does not *throw*, but rather returns errors...
+      expect(parsed).toEqual({
+        path: file,
+        errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
+        references: expect.toMatchContents([]),
+      })
+    })
+
+    it('should report errors when a "tsconfig.json" file is not a valid TypeScript configuration', async () => {
+      const file = context.resolve('test', 'configs', 'tsconfig-wrong.json')
+      const parsed = await readProjectConfig(api, file)
+
+      // NOTE: this does not *throw*, but rather returns errors...
+      expect(parsed).toEqual({
+        path: file,
+        errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
+        references: expect.toMatchContents([]),
+      })
+    })
+
+    it('should report errors when a project reference in "tsconfig.json" is invalid', async () => {
+      const file = context.resolve('test', 'configs', 'tsconfig-missing.json')
+      const parsed = await readProjectConfig(api, file)
+
+      // NOTE: this does not *throw*, but rather returns (our) errors...
+      expect(parsed).toEqual({
+        path: file,
+        references: expect.toMatchContents([]),
+        errors: expect.toMatchContents([
+          {
+            fileName: file,
+            category: 1,
+            code: 6053,
+            pos: -1,
+            end: -1,
+            text: `Cannot resolve project reference "./missing.json"`,
+          },
+          {
+            fileName: file,
+            category: 1,
+            code: 6053,
+            pos: -1,
+            end: -1,
+            text: `Cannot resolve project reference "./missing"`,
+          },
+        ]),
+      })
+    })
+
     it('should fail when a "tsconfig.json" file can not be found in a directory', async () => {
-      const dir = context.resolve('test', 'empty')
-      const file = context.resolve('test', 'empty', 'tsconfig.json')
+      const dir = context.resolve('test', 'configs')
 
-      await expect(readProjectConfig(dir)).toBeRejected((assert) => {
-        assert.toBeError(`TypeScript configuration file "${file}" not found`)
-        expect(assert.value).toHaveProperty('cause', expect.toBeError(/ENOENT/))
-      })
-    })
-
-    it('should fail when a "tsconfig.json" file is not a valid JSON', async () => {
-      const file = context.resolve('test', 'empty', 'empty.txt')
-
-      await expect(readProjectConfig(file)).toBeRejected((assert) => {
-        assert.toBeError(`Failed to read project references from "${file}"`)
-        expect(assert.value).toHaveProperty('cause', expect.toBeError(/error parsing/))
-      })
-    })
-
-    it('should fail when a project reference in "tsconfig.json" is invalid', async () => {
-      const dir = context.resolve('test', 'missing')
-      const file = context.resolve('test', 'missing', 'tsconfig.json')
-
-      await expect(readProjectConfig(dir)).toBeRejectedWithError(
-        `Failed to resolve project reference "./tsconfig-missing.json" from "${file}"`,
-      )
+      await expect(readProjectConfig(api, dir)) //
+        .toBeRejectedWithError(BuildFailure, `TypeScript configuration file not found in "${dir}"`)
     })
   })
 
@@ -80,14 +120,14 @@ describe('Projects', () => {
     it('should read the project references from a directory', async () => {
       const dir = context.resolve('test', 'recursive')
 
-      const references = await findProjectReferences(dir)
-      const result = Object.fromEntries(
-        references.entries().map(([project, referringProjects]) => {
+      const result = await findProjectReferences(api, dir)
+      const projects = Object.fromEntries(
+        result.projects.entries().map(([project, referringProjects]) => {
           return [project, [...referringProjects]]
         }),
       )
 
-      expect(result).toEqual({
+      expect(projects).toEqual({
         [context.resolve('test', 'recursive', 'tsconfig.json')]: [],
         [context.resolve('test', 'recursive', 'a', 'tsconfig.json')]: expect.toMatchContents([
           context.resolve('test', 'recursive', 'tsconfig.json'),
@@ -105,19 +145,21 @@ describe('Projects', () => {
           context.resolve('test', 'recursive', 'tsconfig.json'),
         ],
       })
+
+      expect(result.errors).toEqual([])
     })
 
     it('should read the project references from a file', async () => {
       const file = context.resolve('test', 'recursive', 'a', 'tsconfig.json')
 
-      const references = await findProjectReferences(file)
-      const result = Object.fromEntries(
-        references.entries().map(([project, referringProjects]) => {
+      const result = await findProjectReferences(api, file)
+      const projects = Object.fromEntries(
+        result.projects.entries().map(([project, referringProjects]) => {
           return [project, [...referringProjects]]
         }),
       )
 
-      expect(result).toEqual({
+      expect(projects).toEqual({
         [context.resolve('test', 'recursive', 'a', 'tsconfig.json')]: [
           context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
         ],
@@ -128,6 +170,8 @@ describe('Projects', () => {
           context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
         ],
       })
+
+      expect(result.errors).toEqual([])
     })
 
     it('should read the project references from a set of files or directories', async () => {
@@ -135,14 +179,14 @@ describe('Projects', () => {
       const d = context.resolve('test', 'recursive', 'd')
       const x = context.resolve('test', 'recursive', 'tsconfig.json')
 
-      const references = await findProjectReferences(a, d, x)
-      const result = Object.fromEntries(
-        references.entries().map(([project, referringProjects]) => {
+      const result = await findProjectReferences(api, a, d, x)
+      const projects = Object.fromEntries(
+        result.projects.entries().map(([project, referringProjects]) => {
           return [project, [...referringProjects]]
         }),
       )
 
-      expect(result).toEqual({
+      expect(projects).toEqual({
         [context.resolve('test', 'recursive', 'tsconfig.json')]: [],
         [context.resolve('test', 'recursive', 'a', 'tsconfig.json')]: expect.toMatchContents([
           context.resolve('test', 'recursive', 'tsconfig.json'),
@@ -160,24 +204,53 @@ describe('Projects', () => {
           context.resolve('test', 'recursive', 'tsconfig.json'),
         ],
       })
+
+      expect(result.errors).toEqual([])
     })
 
-    it('should fail when a "tsconfig.json" file is not a valid JSON', async () => {
-      const file = context.resolve('test', 'empty', 'empty.txt')
+    it('should report errors when a "tsconfig.json" file is not a valid JSON', async () => {
+      const file = context.resolve('test', 'configs', 'source.ts')
+      const result = await findProjectReferences(api, file)
 
-      await expect(findProjectReferences(file)).toBeRejected((assert) => {
-        assert.toBeError(`Failed to read project references from "${file}"`)
-        expect(assert.value).toHaveProperty('cause', expect.toBeError(/error parsing/))
-      })
-    })
-
-    it('should fail when a project reference in "tsconfig.json" is invalid', async () => {
-      const dir = context.resolve('test', 'missing')
-      const file = context.resolve('test', 'missing', 'tsconfig.json')
-
-      await expect(findProjectReferences(dir)).toBeRejectedWithError(
-        `Failed to resolve project reference "./tsconfig-missing.json" from "${file}"`,
+      const projects = Object.fromEntries(
+        result.projects.entries().map(([project, referringProjects]) => {
+          return [project, [...referringProjects]]
+        }),
       )
+
+      expect(projects).toEqual({ [file]: [] })
+      expect(result.errors).toHaveProperty('length', expect.toBeGreaterThan(0))
+    })
+
+    it('should report errors when a reference in "tsconfig.json" is invalid', async () => {
+      const file = context.resolve('test', 'configs', 'tsconfig-missing.json')
+      const result = await findProjectReferences(api, file)
+
+      const projects = Object.fromEntries(
+        result.projects.entries().map(([project, referringProjects]) => {
+          return [project, [...referringProjects]]
+        }),
+      )
+
+      expect(projects).toEqual({ [file]: [] })
+      expect(result.errors).toMatchContents([
+        {
+          fileName: file,
+          category: 1,
+          code: 6053,
+          pos: -1,
+          end: -1,
+          text: `Cannot resolve project reference "./missing.json"`,
+        },
+        {
+          fileName: file,
+          category: 1,
+          code: 6053,
+          pos: -1,
+          end: -1,
+          text: `Cannot resolve project reference "./missing"`,
+        },
+      ])
     })
   })
 
@@ -185,8 +258,8 @@ describe('Projects', () => {
     it('should resolve the order of projects based on their references', async () => {
       const dir = context.resolve('test', 'workspaces')
 
-      const references = await findProjectReferences(dir)
-      const result = resolveProjectOrder(references)
+      const { projects } = await findProjectReferences(api, dir)
+      const result = resolveProjectOrder(projects)
 
       // No unresolved projects, no cycles, and all projects are resolved...
       expect(result).toEqual({
@@ -213,8 +286,8 @@ describe('Projects', () => {
       const file = context.resolve('test', 'recursive', 'x', 'tsconfig.json')
       const dir2 = context.resolve('test', 'recursive', 'z')
 
-      const references = await findProjectReferences(dir, file, dir2)
-      const result = resolveProjectOrder(references)
+      const { projects } = await findProjectReferences(api, dir, file, dir2)
+      const result = resolveProjectOrder(projects)
 
       // No unresolved projects, no cycles, and all projects are resolved...
       expect(result).toEqual({
