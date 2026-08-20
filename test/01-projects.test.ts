@@ -1,7 +1,10 @@
 import { async, BuildFailure } from '@plugjs/plug'
+import { ERROR } from '@plugjs/plug/logging'
 import { API } from 'typescript/unstable/async'
 
 import { findProjectReferences, readProjectConfig, resolveProjectOrder } from '../src/projects.ts'
+
+import type { ReportRecord } from '@plugjs/plug/logging'
 
 describe('Projects', () => {
   const context = async.requireContext()
@@ -9,6 +12,18 @@ describe('Projects', () => {
 
   beforeAll(() => (api = new API()))
   afterAll(() => api.close())
+
+  afterEach(async () => {
+    const snapshot = await api.updateSnapshot()
+    const projects = snapshot.getProjects().map((project) => project.configFileName)
+    await api.updateSnapshot({ closeProjects: projects })
+  })
+
+  function printReport(errors: ReportRecord[]): void {
+    if (errors.length < 1) return
+    const report = context.log.report('Test Report').add(...errors)
+    expect(() => report.done()).toThrowError()
+  }
 
   describe('Read Project Config', () => {
     it('should read the project references from a file', async () => {
@@ -65,6 +80,8 @@ describe('Projects', () => {
         errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
         references: expect.toMatchContents([]),
       })
+
+      printReport(parsed.errors)
     })
 
     it('should report errors when a "tsconfig.json" file is not a valid TypeScript configuration', async () => {
@@ -77,6 +94,8 @@ describe('Projects', () => {
         errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
         references: expect.toMatchContents([]),
       })
+
+      printReport(parsed.errors)
     })
 
     it('should report errors when a project reference in "tsconfig.json" is invalid', async () => {
@@ -89,23 +108,21 @@ describe('Projects', () => {
         references: expect.toMatchContents([]),
         errors: expect.toMatchContents([
           {
-            fileName: file,
-            category: 1,
-            code: 6053,
-            pos: -1,
-            end: -1,
-            text: `Cannot resolve project reference "./missing.json"`,
+            file,
+            level: ERROR,
+            tags: ['TS6053'],
+            message: 'Cannot resolve project reference "./missing.json"',
           },
           {
-            fileName: file,
-            category: 1,
-            code: 6053,
-            pos: -1,
-            end: -1,
-            text: `Cannot resolve project reference "./missing"`,
+            file,
+            level: ERROR,
+            tags: ['TS6053'],
+            message: 'Cannot resolve project reference "./missing"',
           },
         ]),
       })
+
+      printReport(parsed.errors)
     })
 
     it('should fail when a "tsconfig.json" file can not be found in a directory', async () => {
@@ -220,6 +237,7 @@ describe('Projects', () => {
 
       expect(projects).toEqual({ [file]: [] })
       expect(result.errors).toHaveProperty('length', expect.toBeGreaterThan(0))
+      printReport(result.errors)
     })
 
     it('should report errors when a reference in "tsconfig.json" is invalid', async () => {
@@ -235,22 +253,19 @@ describe('Projects', () => {
       expect(projects).toEqual({ [file]: [] })
       expect(result.errors).toMatchContents([
         {
-          fileName: file,
-          category: 1,
-          code: 6053,
-          pos: -1,
-          end: -1,
-          text: `Cannot resolve project reference "./missing.json"`,
+          file,
+          level: ERROR,
+          tags: ['TS6053'],
+          message: 'Cannot resolve project reference "./missing.json"',
         },
         {
-          fileName: file,
-          category: 1,
-          code: 6053,
-          pos: -1,
-          end: -1,
-          text: `Cannot resolve project reference "./missing"`,
+          file,
+          level: ERROR,
+          tags: ['TS6053'],
+          message: 'Cannot resolve project reference "./missing"',
         },
       ])
+      printReport(result.errors)
     })
   })
 
@@ -265,6 +280,7 @@ describe('Projects', () => {
       expect(result).toEqual({
         unresolved: [],
         cycles: [],
+        errors: [],
         order: expect.toMatchContents([
           context.resolve('test', 'workspaces', 'plug', 'tsconfig.json'),
           context.resolve('test', 'workspaces', 'cov8', 'tsconfig.json'),
@@ -281,7 +297,7 @@ describe('Projects', () => {
       expect(result.order.pop()).toEqual(context.resolve('test', 'workspaces', 'tsconfig.json'))
     })
 
-    it('should resolve the order of projects based on their references', async () => {
+    it('should report errors when not all projects can be resolved', async () => {
       const dir = context.resolve('test', 'recursive')
       const file = context.resolve('test', 'recursive', 'x', 'tsconfig.json')
       const dir2 = context.resolve('test', 'recursive', 'z')
@@ -292,6 +308,7 @@ describe('Projects', () => {
       // No unresolved projects, no cycles, and all projects are resolved...
       expect(result).toEqual({
         order: [context.resolve('test', 'recursive', 'd', 'tsconfig.json')],
+        errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
         unresolved: expect.toMatchContents([
           context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
           context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
@@ -319,6 +336,8 @@ describe('Projects', () => {
           ],
         ]),
       })
+
+      printReport(result.errors)
     })
   })
 })
