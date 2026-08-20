@@ -4,5 +4,6 @@
     { "path": "./b" },
     { "path": "./c/tsconfig.json" },
     { "path": "./d" }
-  ]
+  ],
+  "include": []
 }
