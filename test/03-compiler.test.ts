@@ -265,4 +265,61 @@ describe('TypeScript Compiler', () => {
       })
     })
   })
+
+  describe('Plug Operation', () => {
+    it('should compile all the projects in a pipe', async () => {
+      const paths = ['cov8', 'eslint', 'expect5', 'plug', 'zip'] // no "tsd"
+        .map((p) => `workspaces/${p}/dist/${p}`)
+        .map((p) => [`${p}.d.ts`, `${p}.d.ts.map`, `${p}.js`, `${p}.js.map`])
+        .flat()
+
+      const copied = await find('workspaces/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
+
+      await async.runAsync(context, async () => {
+        const files = await find('workspaces/*/tsconfig.json', { directory: '@', ignore: 'workspaces/tsd/**' }) //
+          .plug(new TypeScript())
+        expect([...files]).toMatchContents(paths)
+
+        const found = await find('**/*', { directory: '@' })
+        expect([...found]).toMatchContents([
+          ...copied, // all files we copied above plus...
+          ...paths, // ... all the files emitted by the compiler
+        ])
+      })
+    })
+
+    it('should not compile project references by default', async () => {
+      const copied = await find('workspaces/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
+
+      await async.runAsync(context, async () => {
+        const files = await find('workspaces/tsconfig.json', { directory: '@' }) //
+          .plug(new TypeScript())
+        expect([...files]).toMatchContents([])
+
+        const found = await find('**/*', { directory: '@' })
+        expect([...found]).toMatchContents([...copied])
+      })
+    })
+
+    it('should compile project references when requested', async () => {
+      const paths = ['cov8', 'eslint', 'expect5', 'plug', 'tsd', 'zip']
+        .map((p) => `workspaces/${p}/dist/${p}`)
+        .map((p) => [`${p}.d.ts`, `${p}.d.ts.map`, `${p}.js`, `${p}.js.map`])
+        .flat()
+
+      const copied = await find('workspaces/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
+
+      await async.runAsync(context, async () => {
+        const files = await find('workspaces/tsconfig.json', { directory: '@' }) //
+          .plug(new TypeScript({ projectReferences: true }))
+        expect([...files]).toMatchContents(paths)
+
+        const found = await find('**/*', { directory: '@' })
+        expect([...found]).toMatchContents([
+          ...copied, // all files we copied above plus...
+          ...paths, // ... all the files emitted by the compiler
+        ])
+      })
+    })
+  })
 })
