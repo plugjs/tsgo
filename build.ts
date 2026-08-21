@@ -2,7 +2,8 @@ import '@plugjs/cov8'
 import '@plugjs/expect5'
 import { oxc } from '@plugjs/oxc'
 import { banner, find, isDirectory, plugjs, rmrf } from '@plugjs/plug'
-// import { tsc } from '@plugjs/typescript'
+
+import { tsc } from './src/typescript.ts'
 
 export default plugjs({
   /** Flag indicating whether linting/formatting errors should be fixed or not */
@@ -12,7 +13,7 @@ export default plugjs({
   async transpile(): Promise<void> {
     banner('Transpiling TypeScript Sources')
     if (isDirectory('dist')) await rmrf('dist')
-    // await tsc('src/tsconfig.json')
+    await tsc('src/tsconfig.json')
   },
 
   /** Run all tests */
@@ -50,7 +51,7 @@ export default plugjs({
     await this.transpile()
 
     banner('Generating Exports')
-    await find('**/index.*', '**/configs/**.*', { directory: 'dist' }).exports({})
+    await find('index.*', 'typescript.*', { directory: 'dist' }).exports({})
   },
 
   /** Default task: transpile, test and lint */
