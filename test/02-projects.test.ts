@@ -98,6 +98,26 @@ describe('Projects', () => {
       printReport(parsed.errors)
     })
 
+    it('should report errors when a "tsconfig.json" file extends a missing file', async () => {
+      const file = context.resolve('test', 'configs', 'tsconfig-bad-extend.json')
+      const parsed = await readProjectConfig(api, file)
+
+      // NOTE: this does not *throw*, but rather returns errors...
+      expect(parsed).toEqual({
+        path: file,
+        errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
+        references: expect.toMatchContents([]),
+      })
+
+      // This produces a diagnostic with no file name, so we make sure to
+      // *assign* the file name of the config file
+      for (const error of parsed.errors) {
+        expect(error.file).toEqual(file)
+      }
+
+      printReport(parsed.errors)
+    })
+
     it('should report errors when a project reference in "tsconfig.json" is invalid', async () => {
       const file = context.resolve('test', 'configs', 'tsconfig-missing.json')
       const parsed = await readProjectConfig(api, file)
