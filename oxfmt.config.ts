@@ -3,5 +3,5 @@ import { defineConfig } from 'oxfmt'
 
 export default defineConfig({
   ...config,
-  ignorePatterns: [...config.ignorePatterns, 'test/resources'],
+  ignorePatterns: [...config.ignorePatterns],
 })
