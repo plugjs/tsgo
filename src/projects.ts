@@ -2,7 +2,7 @@ import { assert } from '@plugjs/plug/asserts'
 import { $gry, $p, $ylw, ERROR } from '@plugjs/plug/logging'
 import { assertAbsolutePath, getAbsoluteParent, resolveFile } from '@plugjs/plug/paths'
 
-import { convertDiagnostics } from './diagnostics.ts'
+import { convertConfigFileParsingDiagnostics } from './diagnostics.ts'
 
 import type { ReportRecord } from '@plugjs/plug/logging'
 import type { AbsolutePath } from '@plugjs/plug/paths'
@@ -46,6 +46,23 @@ interface ProjectOrder {
  * The path specified can be a `tsconfig.json` file name or a directory
  * containing a `tsconfig.json` file.
  *
+ * The returned path is the absolute path of the actual `tsconfig.json` file.
+ */
+export function findProjectConfig(path: AbsolutePath): AbsolutePath {
+  // The specified path can be either a file or a directory containing a
+  // "tsconfig.json" file: resolve as a file, then assume it's a directory
+  let file = resolveFile(path)
+  if (!file) file = resolveFile(path, 'tsconfig.json')
+  assert(file, `TypeScript configuration file not found in "${path}"`)
+  return file
+}
+
+/**
+ * Find the TypeScript project configuration file for a given path.
+ *
+ * The path specified can be a `tsconfig.json` file name or a directory
+ * containing a `tsconfig.json` file.
+ *
  * The returned object contains the resolved configuration file name (in `path`)
  * and the array of resolved project references (the actual resolved files on
  * disk in `references`).
@@ -54,11 +71,7 @@ interface ProjectOrder {
  * references are returned in the `errors` array.
  */
 export async function readProjectConfig(api: API, path: AbsolutePath): Promise<ProjectReferences> {
-  // The specified path can be either a file or a directory containing a
-  // "tsconfig.json" file: resolve as a file, then assume it's a directory
-  let file = resolveFile(path)
-  if (!file) file = resolveFile(path, 'tsconfig.json')
-  assert(file, `TypeScript configuration file not found in "${path}"`)
+  const file = findProjectConfig(path)
 
   // Use the TypeScript API to load up this project... We already update the
   // snapshot here, so we don't need to do it again once we end up compiling
@@ -71,7 +84,8 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
 
   // Get any diagnostics encountered while parsing the configuration file
   const diagnostics = await project.program.getConfigFileParsingDiagnostics()
-  const errors = await convertDiagnostics(diagnostics, project.program)
+  // Convert the diagnostics to our simplified format
+  const errors = await convertConfigFileParsingDiagnostics(diagnostics, project.program, path)
 
   // Prepare our simplified result object
   const result: ProjectReferences = { path, errors, references: [] }
