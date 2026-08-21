@@ -4,7 +4,7 @@ import { resolveAbsolutePath } from '@plugjs/plug/paths'
 import { Context } from '@plugjs/plug/pipe'
 import { EmitOnly } from 'typescript/unstable/async'
 
-import { tsc, tscBuild, TypeScript } from '../src/typescript.ts'
+import { tsbuild, tsc, TypeScript } from '../src/typescript.ts'
 
 import type { AbsolutePath } from '@plugjs/plug'
 
@@ -226,7 +226,7 @@ describe('TypeScript Compiler', () => {
           .map((p) => [`${p}.d.ts`, `${p}.d.ts.map`, `${p}.js`, `${p}.js.map`])
           .flat()
 
-        const files = await tscBuild('workspaces/tsconfig.json', { directory: '@' })
+        const files = await tsbuild('workspaces/tsconfig.json', { directory: '@' })
         expect([...files]).toMatchContents(paths)
 
         const found = await find('**/*', { directory: '@' })
@@ -242,7 +242,7 @@ describe('TypeScript Compiler', () => {
       const copied = await find('configs/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
 
       await async.runAsync(context, async () => {
-        await expect(tscBuild('configs/tsconfig-bad-extend.json', { directory: '@' })) //
+        await expect(tsbuild('configs/tsconfig-bad-extend.json', { directory: '@' })) //
           .toBeRejectedWithError(BuildFailure)
 
         // Make sure we didn't write any files...
@@ -256,7 +256,7 @@ describe('TypeScript Compiler', () => {
       const copied = await find('recursive/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
 
       await async.runAsync(context, async () => {
-        await expect(tscBuild('recursive', { directory: '@' })) //
+        await expect(tsbuild('recursive', { directory: '@' })) //
           .toBeRejectedWithError(BuildFailure)
 
         // Make sure we didn't write any files...

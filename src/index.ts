@@ -34,4 +34,4 @@ declare module '@plugjs/plug' {
 
 install('typescript', TypeScript)
 
-export { tsc, tscBuild } from './typescript.ts'
+export { tsbuild, tsc } from './typescript.ts'

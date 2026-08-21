@@ -13,9 +13,9 @@ describe('Plug installation', () => {
     expect(merge([]).typescript).toBeA('function')
   })
 
-  it('should export the "tsc" and "tscBuild" utility functions', async () => {
-    const { tsc, tscBuild } = await import('../src/index.ts')
+  it('should export the "tsc" and "tsbuild" utility functions', async () => {
+    const { tsc, tsbuild } = await import('../src/index.ts')
     expect(tsc).toBeA('function')
-    expect(tscBuild).toBeA('function')
+    expect(tsbuild).toBeA('function')
   })
 })
