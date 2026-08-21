@@ -2,7 +2,7 @@ import { assert } from '@plugjs/plug/asserts'
 import { $gry, $p, $ylw, ERROR } from '@plugjs/plug/logging'
 import { assertAbsolutePath, getAbsoluteParent, resolveFile } from '@plugjs/plug/paths'
 
-import { convertConfigFileParsingDiagnostics } from './diagnostics.ts'
+import { convertProjectDiagnostics } from './diagnostics.ts'
 
 import type { ReportRecord } from '@plugjs/plug/logging'
 import type { AbsolutePath } from '@plugjs/plug/paths'
@@ -85,7 +85,7 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
   // Get any diagnostics encountered while parsing the configuration file
   const diagnostics = await project.program.getConfigFileParsingDiagnostics()
   // Convert the diagnostics to our simplified format
-  const errors = await convertConfigFileParsingDiagnostics(diagnostics, project.program, path)
+  const errors = await convertProjectDiagnostics(diagnostics, project.program, path)
 
   // Prepare our simplified result object
   const result: ProjectReferences = { path, errors, references: [] }

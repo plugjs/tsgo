@@ -106,7 +106,7 @@ export async function convertDiagnostics(
   return converted.filter((record): record is ReportRecord => !!record)
 }
 
-export async function convertConfigFileParsingDiagnostics(
+export async function convertProjectDiagnostics(
   diagnostics: readonly Diagnostic[],
   program: Program,
   fileName: AbsolutePath,

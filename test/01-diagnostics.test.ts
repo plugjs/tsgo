@@ -1,7 +1,7 @@
 import { ERROR, NOTICE, WARN } from '@plugjs/plug/logging'
 import { DiagnosticCategory } from 'typescript/unstable/async'
 
-import { convertConfigFileParsingDiagnostics, convertDiagnostics } from '../src/diagnostics.ts'
+import { convertDiagnostics, convertProjectDiagnostics } from '../src/diagnostics.ts'
 
 import type { Program } from 'typescript/unstable/async'
 
@@ -134,7 +134,7 @@ describe('TypeScript Diagnostics', () => {
   })
 
   it('should correctly handle a diagnostic for a config file', async () => {
-    const result = await convertConfigFileParsingDiagnostics(
+    const result = await convertProjectDiagnostics(
       [
         {
           category: DiagnosticCategory.Error,
