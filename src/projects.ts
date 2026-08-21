@@ -20,11 +20,11 @@ interface ProjectReferences {
   errors: ReportRecord[]
 }
 
-/** Interface describing a group of cross referencing projects */
+/** Interface describing a group of cross-referencing projects */
 interface Projects {
   /** All projects to build, each associated with its referencing projects */
   projects: Map<AbsolutePath, Set<AbsolutePath>>
-  /** Any errors encountered while reading the configuration file */
+  /** Any errors encountered while reading the configuration files */
   errors: ReportRecord[]
 }
 
@@ -36,7 +36,7 @@ interface ProjectOrder {
   cycles: AbsolutePath[][]
   /** Array containing all projects that could not be ordered because of cyclical dependencies */
   unresolved: AbsolutePath[]
-  /** Any errors encountered while reading the configuration file */
+  /** Any errors encountered while resolving the project order */
   errors: ReportRecord[]
 }
 
@@ -60,7 +60,7 @@ export function findProjectConfig(path: AbsolutePath): AbsolutePath {
 }
 
 /**
- * Find the TypeScript project configuration file for a given path.
+ * Read the TypeScript project configuration file for a given path.
  *
  * The path specified can be a `tsconfig.json` file name or a directory
  * containing a `tsconfig.json` file.
@@ -140,27 +140,28 @@ export async function findProjectReferences(api: API, ...paths: AbsolutePath[]):
     if (referringProject) referringProjects.add(referringProject)
   }
 
-  // The initial referring project for the loop below
   while (remainingProjects.size > 0) {
-    for (const project of remainingProjects) {
-      // Read the project configuration file and its references
-      const { path, references, errors: e } = await readProjectConfig(api, project)
-      // Push any errors encountered while reading the configuration file
-      errors.push(...e)
-      // Remove the project (might be a dir) from the remaining set
-      remainingProjects.delete(project)
-      // Add the project (resolved filename) to the resolved set
-      resolvedProjects.add(path)
-      // Record the project and its references in our map of projects
-      addProject(path)
+    // Take and remove the next project from the remaining set
+    const project = remainingProjects.values().next().value!
+    remainingProjects.delete(project)
 
-      // Look at all the project references
-      for (const reference of references) {
-        // If we haven't resolved this reference yet, add it to the remaining
-        if (!resolvedProjects.has(reference)) remainingProjects.add(reference)
-        // Then make sure that we record the referring project for this reference
-        addProject(reference, path)
-      }
+    // Read the project configuration file and its references
+    const { path, references, errors: e } = await readProjectConfig(api, project)
+    // If we already resolved this project, skip it
+    if (resolvedProjects.has(path)) continue
+    // Push any errors encountered while reading the configuration file
+    errors.push(...e)
+    // Add the project (resolved filename) to the resolved set
+    resolvedProjects.add(path)
+    // Record the project and its references in our map of projects
+    addProject(path)
+
+    // Look at all the project references
+    for (const reference of references) {
+      // If we haven't resolved this reference yet, add it to the remaining
+      if (!resolvedProjects.has(reference)) remainingProjects.add(reference)
+      // Then make sure that we record the referring project for this reference
+      addProject(reference, path)
     }
   }
 
@@ -224,27 +225,30 @@ export function resolveProjectOrder(projects: ReadonlyMap<AbsolutePath, Set<Abso
   // The list of cycles we have found (each cycle is a list of projects)
   const cycles: AbsolutePath[][] = []
 
-  // A recursive function to visit a project dependents, looking for cycles
-  function visit(project: AbsolutePath, stack: AbsolutePath[] = [project]): void {
-    for (const dependent of projects.get(project) ?? /* coverage ignore next */ []) {
-      // If we have already seen this dependent in the current stack, we found
-      // a cycle, otherwise, we need to visit the dependent and its dependents.
-      if (stack.indexOf(dependent, 1) > 0) {
-        cycles.push([...stack])
-      } else {
-        visit(dependent, [...stack, dependent])
-      }
+  // Recursively visit a project's dependents, looking for cycles
+  function visit(project: AbsolutePath, stack: AbsolutePath[] = []): void {
+    // If this project is already in the current path, we found a cycle
+    const index = stack.indexOf(project)
+    if (index >= 0) {
+      cycles.push([...stack.slice(index), project])
+      return
     }
 
-    // Mark the project as visited and remove it from the stack (backtrack)
+    // Don't revisit projects whose dependents have all been processed
+    if (visited.has(project)) return
+
+    // Add this project to the current path and visit its dependents
+    const next = [...stack, project]
+    for (const dependent of projects.get(project) ?? /* coverage ignore next */ []) {
+      if (unresolved.includes(dependent)) visit(dependent, next)
+    }
+
+    // Mark the project as visited after all its dependents have been processed
     visited.add(project)
-    stack.pop()
   }
 
   // Visit all the unresolved projects, looking for cycles
-  for (const project of unresolved) {
-    if (!visited.has(project)) visit(project)
-  }
+  for (const project of unresolved) visit(project)
 
   // Prep our errors
   const errors: ReportRecord[] = []

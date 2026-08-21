@@ -49,24 +49,25 @@ export async function convertDiagnostics(
 ): Promise<ReportRecord[]> {
   // Filter out any duplicate diagnostic *before* we convert them to report
   // records (that might be expensive because of source file lookups)
-  const unique = diagnostics.filter((diagnostic, index) => {
-    const found = diagnostics.findIndex((other) => {
-      return (
-        diagnostic.category === other.category &&
-        diagnostic.code === other.code &&
-        diagnostic.text === other.text &&
-        diagnostic.pos === other.pos &&
-        diagnostic.end === other.end &&
-        diagnostic.fileName === other.fileName
-      )
-    })
-    return found === index
+  const seen = new Set<string>()
+  const unique = diagnostics.filter((diagnostic) => {
+    const key = JSON.stringify([
+      diagnostic.category,
+      diagnostic.code,
+      diagnostic.text,
+      diagnostic.pos,
+      diagnostic.end,
+      diagnostic.fileName,
+    ])
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
   })
 
   // Convert all diagnostics to report records
   const converted = await Promise.all(
     unique.map(async (diagnostic) => {
-      // Anthing not an error is not critical
+      // Anything not an error is not critical
       const isNonCritical = diagnostic.category !== DiagnosticCategory.Error
 
       // First of all see how we need to handle non-error deprecations: when

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    // Setup our compilation type
+    // Set up our compilation type
     "lib": ["esnext"],
     "target": "esnext",
     "module": "esnext",

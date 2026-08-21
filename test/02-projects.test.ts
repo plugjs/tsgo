@@ -260,6 +260,22 @@ describe('Projects', () => {
       expect(result.errors).toEqual([])
     })
 
+    it('should not resolve a project twice when given its directory and configuration file', async () => {
+      const dir = context.resolve('test', 'recursive')
+      const file = context.resolve('test', 'recursive', 'tsconfig.json')
+
+      const result = await findProjectReferences(api, file, dir)
+
+      expect([...result.projects.keys()]).toMatchContents([
+        file,
+        context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
+        context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
+        context.resolve('test', 'recursive', 'c', 'tsconfig.json'),
+        context.resolve('test', 'recursive', 'd', 'tsconfig.json'),
+      ])
+      expect(result.errors).toEqual([])
+    })
+
     it('should report errors when a "tsconfig.json" file is not a valid JSON', async () => {
       const file = context.resolve('test', 'configs', 'source.ts')
       const result = await findProjectReferences(api, file)
@@ -335,7 +351,7 @@ describe('Projects', () => {
         ]),
       })
 
-      // The first project is "plug", the last is the root "tsconf.json"...
+      // The first project is "plug", the last is the root "tsconfig.json"...
       expect(result.order.shift()).toEqual(context.resolve('test', 'workspaces', 'plug', 'tsconfig.json'))
       expect(result.order.pop()).toEqual(context.resolve('test', 'workspaces', 'tsconfig.json'))
     })
@@ -348,7 +364,7 @@ describe('Projects', () => {
       const { projects } = await findProjectReferences(api, dir, file, dir2)
       const result = resolveProjectOrder(projects)
 
-      // No unresolved projects, no cycles, and all projects are resolved...
+      // Only the independent project is resolved; the rest have cycles.
       expect(result).toEqual({
         order: [context.resolve('test', 'recursive', 'd', 'tsconfig.json')],
         errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),

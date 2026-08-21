@@ -30,7 +30,7 @@ describe('TypeScript Diagnostics', () => {
     },
   } as any
 
-  it('should convert some simple diagnostics without duplications', async () => {
+  it('should convert some simple diagnostics without duplicates', async () => {
     const diagnostics = [
       {
         category: DiagnosticCategory.Error,
@@ -176,7 +176,7 @@ describe('TypeScript Diagnostics', () => {
     ])
   })
 
-  it('should add some tags some specific diagnostics', async () => {
+  it('should add some tags to specific diagnostics', async () => {
     const result = await convertDiagnostics(
       [
         {
@@ -249,7 +249,7 @@ describe('TypeScript Diagnostics', () => {
         {
           category: DiagnosticCategory.Error,
           code: 1234,
-          text: 'This is a external library error',
+          text: 'This is an external library error',
           pos: 0,
           end: 10,
           fileName: '/path/to/external.ts',
@@ -257,7 +257,7 @@ describe('TypeScript Diagnostics', () => {
         {
           category: DiagnosticCategory.Warning,
           code: 1234,
-          text: 'This is a external library error',
+          text: 'This is an external library error',
           pos: 0,
           end: 10,
           fileName: '/path/to/external.ts',
@@ -299,7 +299,7 @@ describe('TypeScript Diagnostics', () => {
     )
 
     expect(result).toEqual([
-      { level: ERROR, message: 'This is a external library error', tags: ['ts1234'], file: '/path/to/external.ts' },
+      { level: ERROR, message: 'This is an external library error', tags: ['ts1234'], file: '/path/to/external.ts' },
       { level: ERROR, message: 'This is a default library error', tags: ['ts1234'], file: '/path/to/default.ts' },
       { level: ERROR, message: 'This is an internal file error', tags: ['ts1234'], file: '/path/to/internal.ts' },
       { level: WARN, message: 'This is an internal file warning', tags: ['ts1234'], file: '/path/to/internal.ts' },

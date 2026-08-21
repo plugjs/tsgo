@@ -1,6 +1,6 @@
 {
   "name": "@plugjs/tsgo",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "TypeScript 7.1 support for PlugJS",
   "keywords": [
     "build",

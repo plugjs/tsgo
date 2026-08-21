@@ -95,7 +95,7 @@ export class TypeScript implements Plug<Files> {
         report.add(...projectOrder.errors)
         if (report.errors) report.done()
 
-        // At this point, out list of projects to build is the "order"
+        // At this point, our list of projects to build is the "order"
         snapshot = await api.updateSnapshot({ openProjects: projectOrder.order })
         projects = [...projectOrder.order]
       } else {
@@ -105,7 +105,7 @@ export class TypeScript implements Plug<Files> {
         projects = [...configs]
 
         // When resolving the project references above, we already processed
-        // any configuration files and added eventual errors to the report...
+        // any configuration files and added any errors to the report...
         // In this case, we have to do it ourselves by reading each config!
         for (const config of configs) {
           const { errors } = await readProjectConfig(api, config)
@@ -156,7 +156,7 @@ export class TypeScript implements Plug<Files> {
           }
         }
 
-        // Add up all dignostics to the report
+        // Add all diagnostics to the report
         report.add(...(await convertDiagnostics(diagnostics, program, this._reportDeprecations)))
       }
     } finally {
