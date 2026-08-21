@@ -83,7 +83,13 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
   path = project.configFileName // rewrite the path to the actual
 
   // Get any diagnostics encountered while parsing the configuration file
-  const diagnostics = await project.program.getConfigFileParsingDiagnostics()
+  // and any "global" diagnostics (not associated with a specific file)...
+  const diagnostics = await Promise.all([
+    project.program.getGlobalDiagnostics(),
+    project.program.getProgramDiagnostics(),
+    project.program.getConfigFileParsingDiagnostics(),
+  ]).then((results) => results.flat())
+
   // Convert the diagnostics to our simplified format
   const errors = await convertProjectDiagnostics(diagnostics, project.program, path)
 
@@ -95,14 +101,7 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
   for (const reference of project.parsedCommandLine.projectReferences ?? []) {
     let resolved = resolveFile(directory, reference.path)
     if (!resolved) resolved = resolveFile(directory, reference.path, 'tsconfig.json')
-    if (!resolved) {
-      result.errors.push({
-        level: ERROR,
-        message: `Cannot resolve project reference "${reference.originalPath}"`,
-        tags: 'ts6053', // File not found
-        file: path,
-      })
-    } else result.references.push(resolved)
+    if (resolved) result.references.push(resolved)
   }
 
   // All done
