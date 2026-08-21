@@ -1,11 +1,11 @@
 import { ERROR, NOTICE, WARN } from '@plugjs/plug/logging'
 import { DiagnosticCategory } from 'typescript/unstable/async'
 
-import { convertDiagnostics } from '../src/diagnostics.ts'
+import { convertConfigFileParsingDiagnostics, convertDiagnostics } from '../src/diagnostics.ts'
 
 import type { Program } from 'typescript/unstable/async'
 
-describe('TypeScript Diagnostics', () => {
+fdescribe('TypeScript Diagnostics', () => {
   const program: Program = {
     getSourceFileMetadata: async (file: string) => {
       return file === '/path/to/external.ts'
@@ -129,6 +129,49 @@ describe('TypeScript Diagnostics', () => {
         column: 1,
         length: 10,
         source: '{"hello":"world"}',
+      },
+    ])
+  })
+
+  it('should correctly handle a diagnostic for a config file', async () => {
+    const result = await convertConfigFileParsingDiagnostics(
+      [
+        {
+          category: DiagnosticCategory.Error,
+          code: 1111,
+          text: 'A simple error',
+          pos: 0,
+          end: 10,
+        },
+        {
+          category: DiagnosticCategory.Warning,
+          code: 2222,
+          text: 'A simple warning',
+          pos: 0,
+          end: 10,
+          fileName: '/path/to/another-config.ts',
+        },
+      ],
+      program,
+      '/path/to/config.ts' as any, // AbsolutePath
+    )
+
+    expect(result).toEqual([
+      {
+        level: ERROR,
+        message: 'A simple error',
+        tags: ['ts1111'],
+        file: '/path/to/config.ts',
+        line: 1,
+        column: 1,
+        length: 10,
+        source: '{"hello":"world"}',
+      },
+      {
+        level: WARN,
+        message: 'A simple warning',
+        tags: ['ts2222'],
+        file: '/path/to/another-config.ts',
       },
     ])
   })

@@ -3,6 +3,7 @@ import { assertAbsolutePath } from '@plugjs/plug/paths'
 import { DiagnosticCategory } from 'typescript/unstable/async'
 
 import type { ReportRecord } from '@plugjs/plug/logging'
+import type { AbsolutePath } from '@plugjs/plug/paths'
 import type { SourceFile } from 'typescript/unstable/ast'
 import type { Diagnostic, Program } from 'typescript/unstable/async'
 
@@ -46,8 +47,25 @@ export async function convertDiagnostics(
   program: Program,
   deprecations: 'warn' | 'notice' | 'off' = 'notice',
 ): Promise<ReportRecord[]> {
+  // Filter out any duplicate diagnostic *before* we convert them to report
+  // records (that might be expensive because of source file lookups)
+  const unique = diagnostics.filter((diagnostic, index) => {
+    const found = diagnostics.findIndex((other) => {
+      return (
+        diagnostic.category === other.category &&
+        diagnostic.code === other.code &&
+        diagnostic.text === other.text &&
+        diagnostic.pos === other.pos &&
+        diagnostic.end === other.end &&
+        diagnostic.fileName === other.fileName
+      )
+    })
+    return found === index
+  })
+
+  // Convert all diagnostics to report records
   const converted = await Promise.all(
-    diagnostics.map(async (diagnostic) => {
+    unique.map(async (diagnostic) => {
       // Anthing not an error is not critical
       const isNonCritical = diagnostic.category !== DiagnosticCategory.Error
 
@@ -85,18 +103,20 @@ export async function convertDiagnostics(
   )
 
   // Filter out any null/undefined records
-  const records = converted.filter((record): record is ReportRecord => !!record)
-  // Remove duplicates (if any) and return the unique records and return
-  return records.filter(
-    (item, index) =>
-      records.findIndex(
-        (other) =>
-          item.level === other.level &&
-          item.message === other.message &&
-          item.file === other.file &&
-          item.line === other.line &&
-          item.column === other.column &&
-          item.length === other.length,
-      ) === index,
-  )
+  return converted.filter((record): record is ReportRecord => !!record)
+}
+
+export async function convertConfigFileParsingDiagnostics(
+  diagnostics: readonly Diagnostic[],
+  program: Program,
+  fileName: AbsolutePath,
+): Promise<ReportRecord[]> {
+  // Make sure that we have a file name for the diagnostics
+  const fileDiagnostics = diagnostics.map((diagnostic) => {
+    if (diagnostic.fileName) return diagnostic
+    return { ...diagnostic, fileName }
+  })
+
+  // Convert the diagnostics to report records and return them
+  return convertDiagnostics(fileDiagnostics, program)
 }
