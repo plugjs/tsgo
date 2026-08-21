@@ -6,12 +6,14 @@ import { convertProjectDiagnostics } from './diagnostics.ts'
 
 import type { ReportRecord } from '@plugjs/plug/logging'
 import type { AbsolutePath } from '@plugjs/plug/paths'
-import type { API } from 'typescript/unstable/async'
+import type { API, ParsedCommandLine } from 'typescript/unstable/async'
 
 /** Interface describing the actual (resolved) config file and its references */
 interface ProjectReferences {
   /** The actual path of the configuration file containing the references */
   path: AbsolutePath
+  /** The actual configuration parsed from the configuration file */
+  config: ParsedCommandLine
   /** The actual paths of all configuration files referenced by this project */
   references: AbsolutePath[]
   /** Any errors encountered while reading the configuration file */
@@ -94,11 +96,12 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
   const errors = await convertProjectDiagnostics(diagnostics, project.program, path)
 
   // Prepare our simplified result object
-  const result: ProjectReferences = { path, errors, references: [] }
+  const config = project.parsedCommandLine
+  const result: ProjectReferences = { path, errors, config, references: [] }
 
   // Resolve the references to absolute paths
   const directory = getAbsoluteParent(path)
-  for (const reference of project.parsedCommandLine.projectReferences ?? []) {
+  for (const reference of config.projectReferences ?? []) {
     let resolved = resolveFile(directory, reference.path)
     if (!resolved) resolved = resolveFile(directory, reference.path, 'tsconfig.json')
     if (resolved) result.references.push(resolved)

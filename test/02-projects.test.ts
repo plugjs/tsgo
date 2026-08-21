@@ -33,6 +33,7 @@ describe('Projects', () => {
       expect(parsed).toEqual({
         path: file,
         errors: [],
+        config: expect.toBeA('object'),
         references: expect.toMatchContents([
           context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
           context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
@@ -50,6 +51,7 @@ describe('Projects', () => {
       expect(parsed).toEqual({
         path: file,
         errors: [],
+        config: expect.toBeA('object'),
         references: expect.toMatchContents([
           context.resolve('test', 'recursive', 'a', 'tsconfig.json'),
           context.resolve('test', 'recursive', 'b', 'tsconfig.json'),
@@ -66,6 +68,7 @@ describe('Projects', () => {
       expect(parsed).toEqual({
         path: file,
         errors: [],
+        config: expect.toBeA('object'),
         references: expect.toMatchContents([]),
       })
     })
@@ -77,6 +80,7 @@ describe('Projects', () => {
       // NOTE: this does not *throw*, but rather returns errors...
       expect(parsed).toEqual({
         path: file,
+        config: expect.toBeA('object'),
         errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
         references: expect.toMatchContents([]),
       })
@@ -91,6 +95,7 @@ describe('Projects', () => {
       // NOTE: this does not *throw*, but rather returns errors...
       expect(parsed).toEqual({
         path: file,
+        config: expect.toBeA('object'),
         errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
         references: expect.toMatchContents([]),
       })
@@ -105,6 +110,7 @@ describe('Projects', () => {
       // NOTE: this does not *throw*, but rather returns errors...
       expect(parsed).toEqual({
         path: file,
+        config: expect.toBeA('object'),
         errors: expect.toHaveProperty('length', expect.toBeGreaterThan(0)),
         references: expect.toMatchContents([]),
       })
@@ -125,6 +131,7 @@ describe('Projects', () => {
       // NOTE: this does not *throw*, but rather returns (our) errors...
       expect(parsed).toEqual({
         path: file,
+        config: expect.toBeA('object'),
         references: expect.toMatchContents([]),
         errors: expect.toMatchContents([
           {
