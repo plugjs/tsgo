@@ -5,7 +5,7 @@ import { convertConfigFileParsingDiagnostics, convertDiagnostics } from '../src/
 
 import type { Program } from 'typescript/unstable/async'
 
-fdescribe('TypeScript Diagnostics', () => {
+describe('TypeScript Diagnostics', () => {
   const program: Program = {
     getSourceFileMetadata: async (file: string) => {
       return file === '/path/to/external.ts'
