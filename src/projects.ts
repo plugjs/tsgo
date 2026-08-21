@@ -85,7 +85,7 @@ export async function readProjectConfig(api: API, path: AbsolutePath): Promise<P
       result.errors.push({
         level: ERROR,
         message: `Cannot resolve project reference "${reference.originalPath}"`,
-        tags: ['TS6053'], // File not found
+        tags: 'ts6053', // File not found
         file: path,
       })
     } else result.references.push(resolved)

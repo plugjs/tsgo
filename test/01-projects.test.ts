@@ -110,13 +110,13 @@ describe('Projects', () => {
           {
             file,
             level: ERROR,
-            tags: ['TS6053'],
+            tags: 'ts6053',
             message: 'Cannot resolve project reference "./missing.json"',
           },
           {
             file,
             level: ERROR,
-            tags: ['TS6053'],
+            tags: 'ts6053',
             message: 'Cannot resolve project reference "./missing"',
           },
         ]),
@@ -255,13 +255,13 @@ describe('Projects', () => {
         {
           file,
           level: ERROR,
-          tags: ['TS6053'],
+          tags: 'ts6053',
           message: 'Cannot resolve project reference "./missing.json"',
         },
         {
           file,
           level: ERROR,
-          tags: ['TS6053'],
+          tags: 'ts6053',
           message: 'Cannot resolve project reference "./missing"',
         },
       ])
