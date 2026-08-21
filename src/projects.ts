@@ -225,27 +225,30 @@ export function resolveProjectOrder(projects: ReadonlyMap<AbsolutePath, Set<Abso
   // The list of cycles we have found (each cycle is a list of projects)
   const cycles: AbsolutePath[][] = []
 
-  // A recursive function to visit a project dependents, looking for cycles
-  function visit(project: AbsolutePath, stack: AbsolutePath[] = [project]): void {
-    for (const dependent of projects.get(project) ?? /* coverage ignore next */ []) {
-      // If we have already seen this dependent in the current stack, we found
-      // a cycle, otherwise, we need to visit the dependent and its dependents.
-      if (stack.indexOf(dependent, 1) > 0) {
-        cycles.push([...stack])
-      } else {
-        visit(dependent, [...stack, dependent])
-      }
+  // Recursively visit a project's dependents, looking for cycles
+  function visit(project: AbsolutePath, stack: AbsolutePath[] = []): void {
+    // If this project is already in the current path, we found a cycle
+    const index = stack.indexOf(project)
+    if (index >= 0) {
+      cycles.push([...stack.slice(index), project])
+      return
     }
 
-    // Mark the project as visited and remove it from the stack (backtrack)
+    // Don't revisit projects whose dependents have all been processed
+    if (visited.has(project)) return
+
+    // Add this project to the current path and visit its dependents
+    const next = [...stack, project]
+    for (const dependent of projects.get(project) ?? /* coverage ignore next */ []) {
+      if (unresolved.includes(dependent)) visit(dependent, next)
+    }
+
+    // Mark the project as visited after all its dependents have been processed
     visited.add(project)
-    stack.pop()
   }
 
   // Visit all the unresolved projects, looking for cycles
-  for (const project of unresolved) {
-    if (!visited.has(project)) visit(project)
-  }
+  for (const project of unresolved) visit(project)
 
   // Prep our errors
   const errors: ReportRecord[] = []
