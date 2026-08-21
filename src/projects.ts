@@ -140,27 +140,28 @@ export async function findProjectReferences(api: API, ...paths: AbsolutePath[]):
     if (referringProject) referringProjects.add(referringProject)
   }
 
-  // The initial referring project for the loop below
   while (remainingProjects.size > 0) {
-    for (const project of remainingProjects) {
-      // Read the project configuration file and its references
-      const { path, references, errors: e } = await readProjectConfig(api, project)
-      // Push any errors encountered while reading the configuration file
-      errors.push(...e)
-      // Remove the project (might be a dir) from the remaining set
-      remainingProjects.delete(project)
-      // Add the project (resolved filename) to the resolved set
-      resolvedProjects.add(path)
-      // Record the project and its references in our map of projects
-      addProject(path)
+    // Take and remove the next project from the remaining set
+    const project = remainingProjects.values().next().value!
+    remainingProjects.delete(project)
 
-      // Look at all the project references
-      for (const reference of references) {
-        // If we haven't resolved this reference yet, add it to the remaining
-        if (!resolvedProjects.has(reference)) remainingProjects.add(reference)
-        // Then make sure that we record the referring project for this reference
-        addProject(reference, path)
-      }
+    // Read the project configuration file and its references
+    const { path, references, errors: e } = await readProjectConfig(api, project)
+    // If we already resolved this project, skip it
+    if (resolvedProjects.has(path)) continue
+    // Push any errors encountered while reading the configuration file
+    errors.push(...e)
+    // Add the project (resolved filename) to the resolved set
+    resolvedProjects.add(path)
+    // Record the project and its references in our map of projects
+    addProject(path)
+
+    // Look at all the project references
+    for (const reference of references) {
+      // If we haven't resolved this reference yet, add it to the remaining
+      if (!resolvedProjects.has(reference)) remainingProjects.add(reference)
+      // Then make sure that we record the referring project for this reference
+      addProject(reference, path)
     }
   }
 
