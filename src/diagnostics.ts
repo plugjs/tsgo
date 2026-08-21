@@ -48,15 +48,14 @@ export async function convertDiagnostics(
 ): Promise<ReportRecord[]> {
   const converted = await Promise.all(
     diagnostics.map(async (diagnostic) => {
-      // First of all see how we need to handle deprecations: when "off" we
-      // suppress them, when "warn" we convert them to warnings...
-      if (diagnostic.reportsDeprecated) {
-        // Nope! No deprecations to be reported!
-        if (deprecations === 'off') return
+      // Anthing not an error is not critical
+      const isNonCritical = diagnostic.category !== DiagnosticCategory.Error
 
-        // If deprecations are set to "warn" we convert the category to a
-        // warning (instead of a notice), obviously unless they are errors...
-        if (deprecations === 'warn' && diagnostic.category !== DiagnosticCategory.Error) {
+      // First of all see how we need to handle non-error deprecations: when
+      // "off" we suppress them, when "warn" we convert them to warnings...
+      if (diagnostic.reportsDeprecated && isNonCritical) {
+        if (deprecations === 'off') return // simply filter this out...
+        if (deprecations === 'warn') {
           diagnostic = { ...diagnostic, category: DiagnosticCategory.Warning }
         }
       }
@@ -70,8 +69,7 @@ export async function convertDiagnostics(
       // from an external library (in "node_modules") then we ONLY keep errors
       // and (we ignore things like warnings, suggestions, ...)
       const isExternal = sourceFileMetadata?.isDefaultLibrary || sourceFileMetadata?.isFromExternalLibrary
-      const isNotice = diagnostic.category !== DiagnosticCategory.Error
-      if (isExternal && isNotice) return
+      if (isExternal && isNonCritical) return
 
       // Get the source file and its metadata (if any) for the diagnostic...
       // We do this *after* the external check above as getting the source file
