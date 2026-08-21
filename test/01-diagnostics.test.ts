@@ -176,7 +176,7 @@ describe('TypeScript Diagnostics', () => {
     ])
   })
 
-  it('should add some tags some specific diagnostics', async () => {
+  it('should add some tags to specific diagnostics', async () => {
     const result = await convertDiagnostics(
       [
         {
@@ -257,7 +257,7 @@ describe('TypeScript Diagnostics', () => {
         {
           category: DiagnosticCategory.Warning,
           code: 1234,
-          text: 'This is a external library error',
+          text: 'This is an external library error',
           pos: 0,
           end: 10,
           fileName: '/path/to/external.ts',

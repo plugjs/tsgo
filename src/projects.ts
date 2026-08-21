@@ -43,7 +43,7 @@ interface ProjectOrder {
 /* ========================================================================== */
 
 /**
- * Read the TypeScript project configuration file for a given path.
+ * Find the TypeScript project configuration file for a given path.
  *
  * The path specified can be a `tsconfig.json` file name or a directory
  * containing a `tsconfig.json` file.
@@ -60,7 +60,7 @@ export function findProjectConfig(path: AbsolutePath): AbsolutePath {
 }
 
 /**
- * Find the TypeScript project configuration file for a given path.
+ * Read the TypeScript project configuration file for a given path.
  *
  * The path specified can be a `tsconfig.json` file name or a directory
  * containing a `tsconfig.json` file.

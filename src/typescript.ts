@@ -105,7 +105,7 @@ export class TypeScript implements Plug<Files> {
         projects = [...configs]
 
         // When resolving the project references above, we already processed
-        // any configuration files and added eventual errors to the report...
+        // any configuration files and added any errors to the report...
         // In this case, we have to do it ourselves by reading each config!
         for (const config of configs) {
           const { errors } = await readProjectConfig(api, config)

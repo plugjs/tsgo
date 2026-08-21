@@ -94,7 +94,7 @@ describe('TypeScript Compiler', () => {
       })
     })
 
-    it('should compile a project emitting only javascript files', async () => {
+    it('should compile a project emitting only JavaScript files', async () => {
       const copied = await find('workspaces/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
 
       await async.runAsync(context, async () => {
@@ -156,7 +156,7 @@ describe('TypeScript Compiler', () => {
       })
     })
 
-    it('should fail when compiling a project when errors are detected', async () => {
+    it('should fail when compiling a project if errors are detected', async () => {
       log($gry('+------------------------------------------------------------------'))
       const copied = await find('failures/**/*', 'tsconfig.options.json', { directory: 'test' }).copy(tempDir)
 
