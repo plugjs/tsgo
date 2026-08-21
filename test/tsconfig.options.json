@@ -5,7 +5,6 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "types": ["node"],
     "skipLibCheck": true,
 
     // ES modules interoperability and preserve import/export statements
