@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.options.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["./src/warnings.ts"]
+}
