@@ -6,12 +6,11 @@ import type { ReportRecord } from '@plugjs/plug/logging'
 import type { SourceFile } from 'typescript/unstable/ast'
 import type { Diagnostic, Program } from 'typescript/unstable/async'
 
-export function convertDiagnostic(diagnostic: Diagnostic, sourceFile?: SourceFile): ReportRecord {
-  const tags: string[] = [`TS${diagnostic.code}`]
-  const record: ReportRecord = {
+function convertDiagnostic(diagnostic: Diagnostic, sourceFile?: SourceFile): ReportRecord {
+  const record: ReportRecord & { tags: string[] } = {
     level: NOTICE,
     message: diagnostic.text,
-    tags,
+    tags: [`ts${diagnostic.code}`],
   }
 
   switch (diagnostic.category) {
@@ -21,10 +20,10 @@ export function convertDiagnostic(diagnostic: Diagnostic, sourceFile?: SourceFil
     case DiagnosticCategory.Warning:
       record.level = WARN
       break
-    case DiagnosticCategory.Suggestion:
-      tags.push('HINT')
-      break
   }
+
+  if (diagnostic.reportsDeprecated) record.tags.push('deprecated')
+  if (diagnostic.reportsUnnecessary) record.tags.push('unnecessary')
 
   if (diagnostic.fileName) {
     assertAbsolutePath(diagnostic.fileName)
@@ -45,9 +44,23 @@ export function convertDiagnostic(diagnostic: Diagnostic, sourceFile?: SourceFil
 export async function convertDiagnostics(
   diagnostics: readonly Diagnostic[],
   program: Program,
+  deprecations: 'warn' | 'notice' | 'off' = 'notice',
 ): Promise<ReportRecord[]> {
   const converted = await Promise.all(
     diagnostics.map(async (diagnostic) => {
+      // First of all see how we need to handle deprecations: when "off" we
+      // suppress them, when "warn" we convert them to warnings...
+      if (diagnostic.reportsDeprecated) {
+        // Nope! No deprecations to be reported!
+        if (deprecations === 'off') return
+
+        // If deprecations are set to "warn" we convert the category to a
+        // warning (instead of a notice), obviously unless they are errors...
+        if (deprecations === 'warn' && diagnostic.category !== DiagnosticCategory.Error) {
+          diagnostic = { ...diagnostic, category: DiagnosticCategory.Warning }
+        }
+      }
+
       // First figure out where this diagnostic came from...
       const sourceFileMetadata = diagnostic.fileName
         ? await program.getSourceFileMetadata(diagnostic.fileName)
