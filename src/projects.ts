@@ -20,11 +20,11 @@ interface ProjectReferences {
   errors: ReportRecord[]
 }
 
-/** Interface describing a group of cross referencing projects */
+/** Interface describing a group of cross-referencing projects */
 interface Projects {
   /** All projects to build, each associated with its referencing projects */
   projects: Map<AbsolutePath, Set<AbsolutePath>>
-  /** Any errors encountered while reading the configuration file */
+  /** Any errors encountered while reading the configuration files */
   errors: ReportRecord[]
 }
 
@@ -36,14 +36,14 @@ interface ProjectOrder {
   cycles: AbsolutePath[][]
   /** Array containing all projects that could not be ordered because of cyclical dependencies */
   unresolved: AbsolutePath[]
-  /** Any errors encountered while reading the configuration file */
+  /** Any errors encountered while resolving the project order */
   errors: ReportRecord[]
 }
 
 /* ========================================================================== */
 
 /**
- * Find the TypeScript project configuration file for a given path.
+ * Read the TypeScript project configuration file for a given path.
  *
  * The path specified can be a `tsconfig.json` file name or a directory
  * containing a `tsconfig.json` file.

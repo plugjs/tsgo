@@ -66,7 +66,7 @@ export async function convertDiagnostics(
   // Convert all diagnostics to report records
   const converted = await Promise.all(
     unique.map(async (diagnostic) => {
-      // Anthing not an error is not critical
+      // Anything not an error is not critical
       const isNonCritical = diagnostic.category !== DiagnosticCategory.Error
 
       // First of all see how we need to handle non-error deprecations: when

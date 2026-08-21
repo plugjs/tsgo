@@ -95,7 +95,7 @@ export class TypeScript implements Plug<Files> {
         report.add(...projectOrder.errors)
         if (report.errors) report.done()
 
-        // At this point, out list of projects to build is the "order"
+        // At this point, our list of projects to build is the "order"
         snapshot = await api.updateSnapshot({ openProjects: projectOrder.order })
         projects = [...projectOrder.order]
       } else {
@@ -156,7 +156,7 @@ export class TypeScript implements Plug<Files> {
           }
         }
 
-        // Add up all dignostics to the report
+        // Add all diagnostics to the report
         report.add(...(await convertDiagnostics(diagnostics, program, this._reportDeprecations)))
       }
     } finally {
