@@ -7,8 +7,8 @@
     // This project is a "very modern" NodeJS project
     "lib": ["esnext"],
     "target": "esnext",
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "types": ["node"],
 
     // Do not emit any files (we only want to type-check)
