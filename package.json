@@ -1,6 +1,6 @@
 {
   "name": "@plugjs/tsgo",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "TypeScript 7.1 support for PlugJS",
   "keywords": [
     "build",
@@ -55,12 +55,12 @@
     "typescript": "^7.1.0-dev"
   },
   "devDependencies": {
-    "@plugjs/cov8": "^0.7.6",
-    "@plugjs/expect5": "^0.7.6",
-    "@plugjs/oxc": "^0.1.7",
-    "@plugjs/plug": "^0.7.6"
+    "@plugjs/cov8": "^0.7.7",
+    "@plugjs/expect5": "^0.7.7",
+    "@plugjs/oxc": "^0.1.8",
+    "@plugjs/plug": "^0.7.7"
   },
   "peerDependencies": {
-    "@plugjs/plug": "^0.7.6"
+    "@plugjs/plug": "^0.7.7"
   }
 }
