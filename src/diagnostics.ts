@@ -1,9 +1,9 @@
 import { ERROR, NOTICE, WARN } from '@plugjs/plug/logging'
 import { assertAbsolutePath } from '@plugjs/plug/paths'
-import { DiagnosticCategory } from 'typescript/unstable/async'
+import { DiagnosticCategory } from 'typescript/async'
 
 import type { ReportRecord } from '@plugjs/plug/logging'
-import type { Diagnostic } from 'typescript/unstable/async'
+import type { Diagnostic } from 'typescript/async'
 
 function convertDiagnostic(diagnostic: Diagnostic): ReportRecord {
   const record: ReportRecord & { tags: string[] } = {

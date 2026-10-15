@@ -2,7 +2,7 @@ import { install } from '@plugjs/plug/pipe'
 
 import { TypeScript, TypeScriptBuild } from './typescript.ts'
 
-import type { OverrideCompilerOptions } from 'typescript/unstable/async'
+import type { OverrideCompilerOptions } from 'typescript/async'
 
 /** Options for the `typescriptBuild` plug. */
 export interface TypeScriptBuildOptions {

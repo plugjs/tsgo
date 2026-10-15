@@ -2,7 +2,7 @@ import { using } from '@plugjs/plug'
 import { Files } from '@plugjs/plug/files'
 import { ERROR } from '@plugjs/plug/logging'
 import { assertAbsolutePath, commonPath, isAbsolutePath } from '@plugjs/plug/paths'
-import { API, DiagnosticCategory } from 'typescript/unstable/async'
+import { API, DiagnosticCategory } from 'typescript/async'
 
 import { convertDiagnostics } from './diagnostics.ts'
 import { diagnosticDeprecationLevel, emitOnlyOption, findProjectConfig } from './utils.ts'
@@ -11,8 +11,8 @@ import type { TscBuildOptions, TscOptions, TypeScriptBuildOptions, TypeScriptOpt
 import type { Pipe } from '@plugjs/plug'
 import type { AbsolutePath } from '@plugjs/plug/paths'
 import type { Context, Plug } from '@plugjs/plug/pipe'
-import type { BuildOrchestrator } from 'typescript/unstable/async'
-import type { Diagnostic, RootedFilePath } from 'typescript/unstable/proto'
+import type { BuildOrchestrator } from 'typescript/async'
+import type { Diagnostic, RootedFilePath } from 'typescript/proto'
 
 /* ========================================================================== *
  * TYPESCRIPT 7 PLUG IMPLEMENTATION                                           *

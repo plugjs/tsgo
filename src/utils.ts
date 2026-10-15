@@ -1,6 +1,6 @@
 import { assert } from '@plugjs/plug/asserts'
 import { resolveFile } from '@plugjs/plug/paths'
-import { EmitOnly } from 'typescript/unstable/async'
+import { EmitOnly } from 'typescript/async'
 
 import type { TypeScriptOptions } from './index.ts'
 import type { AbsolutePath } from '@plugjs/plug/paths'
