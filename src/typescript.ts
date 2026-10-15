@@ -14,6 +14,16 @@ import type { Context, Plug } from '@plugjs/plug/pipe'
 import type { BuildOrchestrator } from 'typescript/async'
 import type { Diagnostic, RootedFilePath } from 'typescript/proto'
 
+/** This is marked as "@internal" in TypeScript 7.1 as it's still unstable */
+declare module 'typescript/async' {
+  interface API {
+    createBuildOrchestrator(
+      rootNames: readonly string[],
+      buildOrchestratorOptions: BuildOrchestratorOptions,
+    ): Promise<BuildOrchestrator>
+  }
+}
+
 /* ========================================================================== *
  * TYPESCRIPT 7 PLUG IMPLEMENTATION                                           *
  * ========================================================================== */
