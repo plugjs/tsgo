@@ -215,7 +215,7 @@ export function tsc(config: string, options: TscOptions = {}): Pipe {
  *
  * This is roughly equivalent to the command line `tsc --build <config>`.
  */
-export function tsbuild(config: string, options: TscBuildOptions): Promise<undefined> {
+export function tsbuild(config: string, options: TscBuildOptions = {}): Promise<undefined> {
   const { directory, ...opts } = options
   return using(config, { directory }).plug(new TypeScriptBuild(opts))
 }
